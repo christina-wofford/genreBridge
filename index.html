@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenreBridge</title>
+    <!-- Add the Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Add your custom CSS file -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center my-5">GenreBridge</h1>
+        <h4 class="text-center my-5">Find the Soundtrack for Your Next Read</h4>
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <form id="search-form">
+                    <div class="form-group">
+                        <label for="bookTitle">Book Title</label>
+                        <input type="text" class="form-control" id="bookTitle" placeholder="Enter book title">
+                    </div>
+                    <div class="form-group">
+                        <label for="authorName">Author Name</label>
+                        <input type="text" class="form-control" id="authorName" placeholder="Enter author name">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Search</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Add the Bootstrap and jQuery JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        document.getElementById("search-form").addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent the default form submission behavior
+        
+            // Get the input values
+            const bookTitle = document.getElementById("bookTitle").value;
+            const authorName = document.getElementById("authorName").value;
+        
+            // Send the data to your Python script
+            fetch("http://127.0.0.1:5000/search", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    book_title: bookTitle,
+                    author_name: authorName
+                })
+            }).then(response => response.json())
+            .then(data => {
+                console.log(data);
+                // Process the data received from the Python script
+            }).catch(error => {
+                console.error("Error:", error);
+            });
+        });
+        </script>
+        
+</body>
+</html>

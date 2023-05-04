@@ -16,10 +16,10 @@ api_key = config.get('google_books_api', 'api_key')
 google_books_api = build('books', 'v1', developerKey=api_key)
 #connect to postgres
 conn = psycopg2.connect(
-    host="host",
-    database="database",
-    user="user",
-    password="password"
+    host="localhost",
+    database="genrebridge",
+    user="christina",
+    password="dispute"
 )
 cur = conn.cursor()
 

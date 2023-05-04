@@ -1,0 +1,19 @@
+body {
+    background-color: #228B22;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+label {
+    color: white;
+}
+
+.btn-primary {
+    background-color: #09641b;
+    border-color: #000000;
+}
+
+.btn-primary:hover {
+    background-color: #B8860B;
+    border-color: #B8860B;
+}
