@@ -29,17 +29,37 @@ def search():
     # Remove trailing delimiters (period and comma) from book keywords
     book_keywords = {keyword.rstrip('.').rstrip(',') for keyword in book_keywords}
 
-    #Use SQL INSERT statements to add book data to database
-    cursor.execute("INSERT INTO authors (author_first_name, author_last_name) VALUES (%s, %s) RETURNING author_id", (book_author.split()[0], book_author.split()[-1]))
-    author_id = cursor.fetchone()[0]
-    cursor.execute("INSERT INTO books (title, author_id, publication_year, google_books_id, isbn) VALUES (%s, %s, %s, %s, %s) RETURNING book_id", (book_title, author_id, publication_year, google_books_id, isbn))
+   # Check if author already exists
+    cursor.execute("SELECT author_id FROM authors WHERE author_first_name = %s AND author_last_name = %s", (book_author.split()[0], book_author.split()[-1]))
+    result = cursor.fetchone()
+
+    if result:
+        author_id = result[0]
+    else:
+        # Insert new author if not a duplicate
+        cursor.execute("INSERT INTO authors (author_first_name, author_last_name) SELECT %s, %s WHERE NOT EXISTS (SELECT 1 FROM authors WHERE author_first_name = %s AND author_last_name = %s) RETURNING author_id", (book_author.split()[0], book_author.split()[-1], book_author.split()[0], book_author.split()[-1]))
+        author_id = cursor.fetchone()[0]
+
+# Insert book
+    cursor.execute("INSERT INTO books (title, author_id, publication_year, google_books_id, isbn) VALUES (%s, %s, %s, %s, %s) RETURNING book_id", (book_title, author_id, str(publication_year), google_books_id, isbn))
     book_id = cursor.fetchone()[0]
+
+    # Insert book-author mapping
+    cursor.execute("INSERT INTO book_author_mapping (book_id, author_id) VALUES (%s, %s)", (book_id, author_id))
+
     
     #Use SQL INSERT statements to add book keywords to database
     for keyword in book_keywords:
-        cursor.execute("INSERT INTO keywords (keyword_description) VALUES (%s) ON CONFLICT (keyword_description) DO UPDATE SET keyword_description = EXCLUDED.keyword_description RETURNING keyword_id", (keyword,))
+        cursor.execute("SELECT keyword_id FROM keywords WHERE keyword_description = %s", (keyword,))
+        keyword_id = cursor.fetchone()
+    if keyword_id:
+        # The keyword already exists
+        keyword_id = keyword_id[0]
+    else:
+        # The keyword doesn't exist, insert it
+        cursor.execute("INSERT INTO keywords (keyword_description) VALUES (%s) RETURNING keyword_id", (keyword,))
         keyword_id = cursor.fetchone()[0]
-        cursor.execute("INSERT INTO book_keywords (book_id, keyword_id) VALUES (%s, %s)", (book_id, keyword_id))
+    cursor.execute("INSERT INTO book_keyword_mapping (book_id, keyword_id) VALUES (%s, %s)", (book_id, keyword_id))
 
     #Commit changes to database
     connection.commit()
@@ -49,6 +69,7 @@ def search():
     playlist_name = None
     playlist_spotify_id = None
     playlist_details = None
+    follower_count = None
 
     # Search for playlist matching book title
     playlists = spotify_api.search(q=book_title, type='playlist', limit=10)['playlists']['items']
@@ -93,20 +114,20 @@ def search():
             pass
 
 
-    if playlist_id:
-        # Get the follower count from the playlist_details
-        follower_count = playlist_details['followers']['total']
+    # Update the query to insert the playlist data with the follower_count field
+    cursor.execute("INSERT INTO playlists (title, spotify_id, follower_count) VALUES (%s, %s, %s) RETURNING playlist_id", (playlist_name, playlist_id, follower_count))
+    playlist_id = cursor.fetchone()[0]
+    # Insert book_id and playlist_id into the playlist_book_mapping table
+    cursor.execute("INSERT INTO playlist_book_mapping (book_id, playlist_id) VALUES (%s, %s)", (book_id, playlist_id))
+    # Get the playlist tracks
+    playlist_id_str = playlist_id['spotify_playlist_id']
+    playlist_tracks = spotify_api.playlist_tracks(playlist_id_str, fields='items(track(name, album(name, id, release_date), artists(name), popularity, duration_ms))')['items']
 
-        # Update the query to insert the playlist data with the follower_count field
-        cursor.execute("INSERT INTO playlists (title, book_id, spotify_id, follower_count) VALUES (%s, %s, %s, %s)", (playlist_name, book_id, playlist_id, follower_count))
-        playlist_id = cursor.fetchone()[0]
-        # Get the playlist tracks
-        playlist_tracks = spotify_api.playlist_tracks(playlist_id, fields='items(track(name, album(name, id, release_date), artists(name), popularity, duration_ms))')['items']
 
-        # Store each track in the playlist_tracks, artists, and albums tables
-        for item in playlist_tracks:
-            track = item['track']
-            store_track_info(track, playlist_spotify_id, playlist_id)  # Pass the Spotify playlist ID
+    # Store each track in the playlist_tracks, artists, and albums tables
+    for item in playlist_tracks:
+        track = item['track']
+        store_track_info(track, playlist_spotify_id, playlist_id)  # Pass the Spotify playlist ID
 
     else:
         print("No matching playlist found")
@@ -148,8 +169,8 @@ def store_track_info(track, playlist_spotify_id, playlist_id):
     track_popularity = track['popularity']
     track_duration_ms = track['duration_ms']
 
-    # Insert track data into playlist_tracks table
-    cursor.execute("INSERT INTO playlist_tracks (artist_id, album_id, playlist_id, title, popularity, duration_ms) VALUES (%s, %s, %s, %s, %s, %s)", (artist_id, album_id, playlist_id, track_title, track_popularity, track_duration_ms))
+    # Insert track data into tracks table
+    cursor.execute("INSERT INTO tracks (artist_id, album_id, playlist_id, title, popularity, duration_ms) VALUES (%s, %s, %s, %s, %s, %s)", (artist_id, album_id, playlist_id, track_title, track_popularity, track_duration_ms))
 
     # Insert a record in playlist_albums
     cursor.execute("INSERT INTO playlist_albums (playlist_id, album_id) VALUES (%s, %s)", (playlist_id, album_id))
