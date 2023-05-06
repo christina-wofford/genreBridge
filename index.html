@@ -13,6 +13,7 @@
     <div class="container">
         <h1 class="text-center my-5">GenreBridge</h1>
         <h4 class="text-center my-5">Find the Soundtrack for Your Next Read</h4>
+        <div id="spotify-widget" class="my-5 spotify-widget-container"></div>
         <div class="row">
             <div class="col-md-6 offset-md-3">
                 <form id="search-form">
@@ -56,11 +57,26 @@
             .then(data => {
                 console.log(data);
                 // Process the data received from the Python script
+
+                // Create an iframe for the Spotify playlist widget
+                const spotifyWidget = document.createElement("iframe");
+
+                    // Set the iframe attributes
+                    spotifyWidget.setAttribute("src", `https://open.spotify.com/embed/playlist/${data.playlist_id}`);
+                    spotifyWidget.setAttribute("width", "300");
+                    spotifyWidget.setAttribute("height", "380");
+                    spotifyWidget.setAttribute("frameborder", "0");
+                    spotifyWidget.setAttribute("allowtransparency", "true");
+                    spotifyWidget.setAttribute("allow", "encrypted-media");
+
+                    // Add the iframe to the div with the id 'spotify-widget'
+                    const widgetContainer = document.getElementById("spotify-widget");
+                    widgetContainer.innerHTML = ""; // Clear any previous content
+                    widgetContainer.appendChild(spotifyWidget);
+                    })
             }).catch(error => {
                 console.error("Error:", error);
             });
-        });
         </script>
-        
 </body>
 </html>

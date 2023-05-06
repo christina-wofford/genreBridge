@@ -6,12 +6,6 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/search', methods=['GET', 'POST'])
-data = json.loads(request.data)
-book_title = data['book_title']
-author_name = data['author_name']
-
-search_google_books(book_title, author_name)
-
 def search():
     data = json.loads(request.data)
     book_title = data['book_title']
@@ -47,7 +41,7 @@ def search():
     for keyword in book_keywords:
         cursor.execute("INSERT INTO keywords (keyword_description) VALUES (%s) ON CONFLICT (keyword_description) DO UPDATE SET keyword_description = EXCLUDED.keyword_description RETURNING keyword_id", (keyword,))
         keyword_id = cursor.fetchone()[0]
-        cursor.execute("INSERT INTO book_keywords (book_id, keyword_id) VALUES (%s, %s)", (book_id, keyword_id))
+        cursor.execute("INSERT INTO book_keyword_mapping (book_id, keyword_id) VALUES (%s, %s)", (book_id, keyword_id))
 
     #Commit changes to database
     connection.commit()

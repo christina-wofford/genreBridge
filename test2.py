@@ -47,7 +47,6 @@ def search():
     # Insert book-author mapping
     cursor.execute("INSERT INTO book_author_mapping (book_id, author_id) VALUES (%s, %s)", (book_id, author_id))
 
-    
     #Use SQL INSERT statements to add book keywords to database
     for keyword in book_keywords:
         cursor.execute("SELECT keyword_id FROM keywords WHERE keyword_description = %s", (keyword,))
@@ -68,19 +67,17 @@ def search():
     playlist_id = None
     playlist_name = None
     playlist_spotify_id = None
-    playlist_details = None
     follower_count = None
 
     # Search for playlist matching book title
     playlists = spotify_api.search(q=book_title, type='playlist', limit=10)['playlists']['items']
     print("Searching for playlist matching book title:")
     for playlist in playlists:
-        print(" - ", playlist['name']) 
+        print(" - ", playlist['id'], playlist['name']) 
     for playlist in playlists:
         if book_title.lower() in playlist['name'].lower():
             playlist_id = playlist['id']
             playlist_name = playlist['name']
-            playlist_details = spotify_api.playlist(playlist_id)
             playlist_tracks = spotify_api.playlist_tracks(playlist_id, fields='items(track(name,album(name),artists(name)))')['items']
             break
     
@@ -105,37 +102,33 @@ def search():
         playlist_ids = []
         for keyword in book_keywords:
             playlists = spotify_api.search(q=keyword, type='playlist', limit=10)['playlists']['items']
-            for playlist in playlists:
-                if playlist['id'] not in playlist_ids:
-                    playlist_ids.append(playlist['id'])
-                    playlist_tracks = spotify_api.playlist_tracks(playlist['id'], fields='items(track(name,album(name),artists(name)))')['items']
+        for playlist in playlists:
+            if playlist['id'] not in playlist_ids:
+                playlist_ids.append(playlist['id'])
+                playlist_tracks = spotify_api.playlist_tracks(playlist['id'], fields='items(track(name,album(name),artists(name)))')['items']
 
-        if not playlist_ids:
-            pass
-
-
+    if not playlist_id:
+        pass
+        
+    if playlist_id:
     # Update the query to insert the playlist data with the follower_count field
-    cursor.execute("INSERT INTO playlists (title, spotify_id, follower_count) VALUES (%s, %s, %s) RETURNING playlist_id", (playlist_name, playlist_id, follower_count))
-    playlist_id = cursor.fetchone()[0]
-    # Insert book_id and playlist_id into the playlist_book_mapping table
-    cursor.execute("INSERT INTO playlist_book_mapping (book_id, playlist_id) VALUES (%s, %s)", (book_id, playlist_id))
-    # Get the playlist tracks
-    playlist_id_str = playlist_id['spotify_playlist_id']
-    playlist_tracks = spotify_api.playlist_tracks(playlist_id_str, fields='items(track(name, album(name, id, release_date), artists(name), popularity, duration_ms))')['items']
+        cursor.execute("INSERT INTO playlists (title, spotify_id, follower_count) VALUES (%s, %s, %s) RETURNING playlist_id", (playlist_name, playlist_id, follower_count))
+        db_playlist_id = cursor.fetchone()[0]
+    
+        # Insert book_id and playlist_id into the playlist_book_mapping table
+        cursor.execute("INSERT INTO playlist_book_mapping (book_id, playlist_id) VALUES (%s, %s)", (book_id, db_playlist_id))
 
+        # Get the playlist tracks
+        playlist_tracks = spotify_api.playlist_tracks(playlist_id, fields='items(track(name, album(name, id, release_date), artists(name), popularity, duration_ms))')['items']
 
     # Store each track in the playlist_tracks, artists, and albums tables
     for item in playlist_tracks:
         track = item['track']
-        store_track_info(track, playlist_spotify_id, playlist_id)  # Pass the Spotify playlist ID
+        store_track_info(track, db_playlist_id)  # Pass the database playlist ID
 
-    else:
-        print("No matching playlist found")
+    return jsonify({"message": "Data received and processed", "book_title": book_title, "author_name": author_name, "playlist_name": playlist_name, "playlist_id": playlist_id})
 
-    connection.commit()
-    return jsonify({"message": "Data received and processed", "book_title": book_title, "author_name": author_name, "playlist_name": playlist_name})
-
-def store_track_info(track, playlist_spotify_id, playlist_id):
+def store_track_info(track, db_playlist_id):
     # Get artist data
     artist_name = track['artists'][0]['name']
     artist_id = None
@@ -151,7 +144,11 @@ def store_track_info(track, playlist_spotify_id, playlist_id):
 
     # Get album data
     album_name = track['album']['name']
-    spotify_album_id = track['album']['id']
+    if 'id' in track['album']:
+        spotify_album_id = track['album']['id']
+    else:
+        # Skipping the track if the album id is missing
+        return
     release_year = track['album']['release_date'][:4]
     album_id = None
 
@@ -170,12 +167,11 @@ def store_track_info(track, playlist_spotify_id, playlist_id):
     track_duration_ms = track['duration_ms']
 
     # Insert track data into tracks table
-    cursor.execute("INSERT INTO tracks (artist_id, album_id, playlist_id, title, popularity, duration_ms) VALUES (%s, %s, %s, %s, %s, %s)", (artist_id, album_id, playlist_id, track_title, track_popularity, track_duration_ms))
+    cursor.execute("INSERT INTO tracks (artist_id, album_id, title, popularity, duration_ms) VALUES (%s, %s, %s, %s, %s)", (artist_id, album_id, track_title, track_popularity, track_duration_ms))
 
     # Insert a record in playlist_albums
-    cursor.execute("INSERT INTO playlist_albums (playlist_id, album_id) VALUES (%s, %s)", (playlist_id, album_id))
-
-
+    cursor.execute("INSERT INTO playlist_albums (playlist_id, album_id) VALUES (%s, %s)", (db_playlist_id, album_id))
+    connection.commit
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)

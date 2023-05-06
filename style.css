@@ -17,3 +17,9 @@ label {
     background-color: #B8860B;
     border-color: #B8860B;
 }
+
+.spotify-widget-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
