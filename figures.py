@@ -92,4 +92,3 @@ def most_frequently_appearing_artists_by_year():
     # Display the table
     print(df)
 most_frequently_appearing_artists_by_year()
-
