@@ -8,6 +8,9 @@ import json
 import ssl
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 spotify_client_id = '1cd807f73d0442a8946b04796cd45c57'
 spotify_client_secret = 'd59d8ca6c4574fa1adf241ff40f770b5'

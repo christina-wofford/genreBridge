@@ -1,21 +1,26 @@
 body {
-    background-color: #228B22;
-    color: white;
+    background-color: #ffffff;
+    color: #000000;
     font-family: Arial, sans-serif;
 }
 
-label {
-    color: white;
+h1, h4 {
+    font-weight: bold;
 }
 
-.btn-primary {
-    background-color: #09641b;
-    border-color: #000000;
+input, button {
+    border: 1px solid #000000;
 }
 
-.btn-primary:hover {
-    background-color: #B8860B;
-    border-color: #B8860B;
+button {
+    background-color: #ffffff;
+    color: #000000;
+    font-weight: bold;
+}
+
+button:hover {
+    background-color: #000000;
+    color: #ffffff;
 }
 
 .spotify-widget-container {
