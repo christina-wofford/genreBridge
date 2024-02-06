@@ -1,0 +1,30 @@
+body {
+    background-color: #ffffff;
+    color: #000000;
+    font-family: Arial, sans-serif;
+}
+
+h1, h4 {
+    font-weight: bold;
+}
+
+input, button {
+    border: 1px solid #000000;
+}
+
+button {
+    background-color: #ffffff;
+    color: #000000;
+    font-weight: bold;
+}
+
+button:hover {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.spotify-widget-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
